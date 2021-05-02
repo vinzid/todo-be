@@ -3,15 +3,22 @@ const { Client } = require('pg');
 module.exports = {
   get: async ctx => {
     const client = new Client();
-    let result
+    let result, subtasks;
     try{
       await client.connect();
       result = await client.query(`SELECT id, title, status, created_at FROM todo ORDER BY id`);
+      subtasks = await client.query(`SELECT id, title, todo_id, status, created_at FROM subtask ORDER BY id`);
       client.end();
     }catch(e) {
       console.log('todo post error', e);
     }
     if(result && result.rows) {
+      if(subtasks && subtasks.rows)
+      result.rows.forEach(v => {
+        v.subtasks = subtasks.rows.filter(w => v.id === w.todo_id);
+        let completed = v.subtasks.filter(w => 'completed' === w.status)
+        v.completed = completed.length;
+      });
       ctx.body = {
         data: result.rows
       };
@@ -65,6 +72,9 @@ module.exports = {
     try{
       await client.connect()
       result = await client.query(`UPDATE todo SET status = '${status}' WHERE id = ${id}`);
+      if(result && 1 === result.rowCount) {
+        await client.query(`UPDATE subtask SET status = '${status}' WHERE todo_id = ${id}`);
+      }
       client.end();
     }catch(e) {
       console.log('todo post error', e);
