@@ -34,6 +34,15 @@ module.exports = {
   post: async ctx => {
     const client = new Client();
     const { title } = ctx.request.body;
+    if(!title) {
+      ctx.status = 401;
+      ctx.body = {
+        error: [{
+          status: 401,
+        }]
+      }
+      return;
+    }
     let result;
     try{
       await client.connect();
@@ -67,6 +76,7 @@ module.exports = {
           status: 401,
         }]
       }
+      return;
     }
     let result;
     try{
